@@ -166,7 +166,7 @@ function loadDict() {
     if (DICT) return true;
     await new Promise((res, rej) => {
       const s = document.createElement('script');
-      s.src = 'dict.js';
+      s.src = 'dict.js?v=3';
       s.onload = () => {
         if (window.CIKE_DICT) { DICT = window.CIKE_DICT; REL = window.CIKE_REL || {}; res(); }
         else rej(new Error('dict.js 缺少数据'));
