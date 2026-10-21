@@ -26,9 +26,10 @@ function toast(msg, ms) {
 
 /* ================= 设置 ================= */
 const SET_KEY = 'cike_settings_v2';
+const DEFAULT_PROXY = 'https://ezza9b0gam33p.cfc-execute.bj.baidubce.com/';
 const DEFAULT_SETTINGS = {
   dailyNew: 30, voice: 'gb', ocrEngine: 'baidu',
-  baiduApiKey: '', baiduSecret: '', baiduToken: '', baiduTokenAt: 0, baiduProxy: '',
+  baiduApiKey: '', baiduSecret: '', baiduToken: '', baiduTokenAt: 0, baiduProxy: DEFAULT_PROXY,
   onlineEnrich: true
 };
 function getSettings() {
@@ -39,7 +40,10 @@ function getSettings() {
       const old = JSON.parse(localStorage.getItem('cike_settings') || '{}');
       if (Object.keys(old).length) { s = Object.assign({}, old); saveSettings(s); }
     }
-    return Object.assign({}, DEFAULT_SETTINGS, s);
+    const merged = Object.assign({}, DEFAULT_SETTINGS, s);
+    // 代理地址兜底：空值或非 https 的无效地址（如误填的短链）一律回退为内置默认
+    if (!merged.baiduProxy || !/^https:\/\//i.test(merged.baiduProxy)) merged.baiduProxy = DEFAULT_PROXY;
+    return merged;
   }
   catch (e) { return Object.assign({}, DEFAULT_SETTINGS); }
 }
