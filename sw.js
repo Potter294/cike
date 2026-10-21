@@ -1,7 +1,7 @@
 /* 词刻 Service Worker — 离线缓存（需在 http/https 环境生效，file:// 下自动跳过）
    版本号机制：代码更新时同时把 index.html 里的资源引用版本号 +1（styles.css?v=N 等）并同步本文件 ASSETS。 */
-const CACHE = 'cike-v4';
-const ASSETS = ['./', './index.html', './styles.css?v=3', './app.js?v=3', './dict.js?v=3', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
+const CACHE = 'cike-v5';
+const ASSETS = ['./', './index.html', './styles.css?v=3', './app.js?v=3', './dict.js?v=3', './manifest.webmanifest?v=4', './icon.svg', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
