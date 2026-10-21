@@ -49,13 +49,13 @@
 
     <div id="imp-panel-img">
       <div class="card">
-        <div class="card-title">1. 选择单词图片（单词 + 中文释义排版）</div>
+        <div class="card-title">1. 选择单词图片（单词 + 中文释义排版，可一次选多张）</div>
         <div class="pick-row">
           <button class="btn ghost small" id="btn-take-photo">拍照</button>
-          <button class="btn ghost small" id="btn-pick-album">从相册选择</button>
+          <button class="btn ghost small" id="btn-pick-album">从相册选择（可多选）</button>
         </div>
         <input type="file" id="imp-file-cam" accept="image/*" capture="environment" style="display:none;">
-        <input type="file" id="imp-file-album" accept="image/*" style="display:none;">
+        <input type="file" id="imp-file-album" accept="image/*" multiple style="display:none;">
         <button class="btn ghost small" id="btn-ocr">开始识别（百度OCR）</button>
         <img id="imp-preview" class="img-preview" alt="图片预览">
       </div>
@@ -263,6 +263,6 @@
 
 <div id="toast"></div>
 
-<script src="app.js?v=3"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

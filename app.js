@@ -491,21 +491,48 @@ function renderPendingRows() {
     + (r.meaning ? '' : '<span class="badge">待补释义</span>')
     + '</li>').join('');
 }
-async function runOcr(file) {
+async function runOcrFiles(files) {
+  if (!files || !files.length) return;
   const preview = $('#imp-preview');
-  const dataUrl = await readFileAsDataURL(file);
-  preview.src = dataUrl; preview.classList.add('show');
-  toast('正在识别…（约 1-2 秒）', 1500);
-  try {
-    const lines = await runOcrEngine(dataUrl);
-    pendingRows = parseLines(lines).map((p) => ({ word: p.word, meaning: p.meaning, checked: true }));
-    if (!pendingRows.length) { toast('未识别到有效单词，请检查图片排版'); return; }
-    $('#imp-result-card').style.display = '';
-    renderPendingRows();
-    $('#imp-summary').textContent = '识别到 ' + pendingRows.length + ' 条，请校对后入库';
-  } catch (e) {
-    toast(e.message || '识别失败');
+  // 预加载内置词典（用于识别后自动补释义；加载失败不阻断识别）
+  const dictOk = await loadDict();
+  const merged = new Map(); // word -> {word, meaning}
+  let failCount = 0, lastError = '';
+  for (let i = 0; i < files.length; i++) {
+    try {
+      const dataUrl = await readFileAsDataURL(files[i]);
+      if (i === 0) { preview.src = dataUrl; preview.classList.add('show'); }
+      toast('正在识别第 ' + (i + 1) + '/' + files.length + ' 张…', 1500);
+      const lines = await runOcrEngine(dataUrl);
+      for (const p of parseLines(lines)) {
+        const w = p.word.toLowerCase();
+        // 释义需含中文才保留（音标/乱码/纯英文视为无释义，交给词典补全）
+        const meaning = /[\u4e00-\u9fa5]/.test(p.meaning) ? p.meaning : '';
+        const hit = merged.get(w);
+        if (!hit) merged.set(w, { word: w, meaning: meaning, checked: true });
+        else if (!hit.meaning && meaning) hit.meaning = meaning;
+      }
+    } catch (e) {
+      failCount++; lastError = e && e.message ? e.message : '识别失败';
+    }
   }
+  // 词典自动补释义：OCR 没识别出中文释义的词条，用内置词典填充
+  if (dictOk) {
+    for (const r of merged.values()) {
+      if (!r.meaning) {
+        const e = dictLookup(r.word);
+        if (e && e.defs && e.defs.length) r.meaning = e.defs[0];
+      }
+    }
+  }
+  pendingRows = Array.from(merged.values());
+  if (!pendingRows.length) { toast(lastError || '未识别到有效单词，请检查图片排版'); return; }
+  $('#imp-result-card').style.display = '';
+  renderPendingRows();
+  let summary = '识别到 ' + pendingRows.length + ' 条，请校对后入库';
+  if (dictOk) summary += '（空释义已用内置词典自动补全，可修改）';
+  if (failCount) summary += '；' + failCount + ' 张图识别失败';
+  $('#imp-summary').textContent = summary;
 }
 async function importChecked() {
   await loadDict();
@@ -858,15 +885,16 @@ async function importData(file) {
 }
 
 /* ================= 事件绑定 ================= */
-/* 当前选中的待识别图片 */
-let currentFile = null;
+/* 当前选中的待识别图片（支持多选） */
+let currentFiles = [];
 function bindFileInput(inputEl) {
   inputEl.addEventListener('change', (e) => {
-    const f = e.target.files && e.target.files[0];
-    if (!f) return;
-    currentFile = f;
-    readFileAsDataURL(f).then((dataUrl) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (!files.length) return;
+    currentFiles = files;
+    readFileAsDataURL(files[0]).then((dataUrl) => {
       const p = $('#imp-preview'); p.src = dataUrl; p.classList.add('show');
+      if (files.length > 1) toast('已选 ' + files.length + ' 张图片，点击「开始识别」批量识别', 2000);
     }).catch(() => {});
   });
 }
@@ -887,8 +915,8 @@ function bind() {
   bindFileInput($('#imp-file-cam'));
   bindFileInput($('#imp-file-album'));
   $('#btn-ocr').addEventListener('click', () => {
-    if (!currentFile) { toast('请先拍照或从相册选择一张单词图片'); return; }
-    runOcr(currentFile);
+    if (!currentFiles.length) { toast('请先拍照或从相册选择单词图片'); return; }
+    runOcrFiles(currentFiles).catch((e) => toast(e.message || '识别失败'));
   });
   $('#imp-result').addEventListener('change', (e) => {
     const el = e.target; const i = parseInt(el.dataset.i, 10);
