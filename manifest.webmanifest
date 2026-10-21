@@ -1,0 +1,12 @@
+{
+  "name": "词刻 · 记忆曲线背单词",
+  "short_name": "词刻",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f8fb",
+  "theme_color": "#0b6fb8",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b6fb8">
+<title>词刻 · 记忆曲线背单词</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='26' fill='%230b6fb8'/%3E%3Ctext x='64' y='84' font-size='58' font-weight='700' fill='%23ffffff' text-anchor='middle' font-family='sans-serif'%3E%E8%AF%8D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="app-header">
+  <h1>词刻</h1>
+  <span class="tag">记忆曲线背单词 · v2.0（阶段二）</span>
+</header>
+
+<main>
+
+  <!-- ===== 今日 ===== -->
+  <section class="view" id="view-today">
+    <div class="card center">
+      <div class="ring" id="today-ring"><div class="hole">
+        <div class="num" id="today-num">0</div>
+        <div class="lbl">今日待复习</div>
+      </div></div>
+      <div id="today-sub" class="muted" style="margin-bottom:14px;">正在统计…</div>
+      <button class="btn" id="btn-start-review">开始今日复习</button>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="n" id="s-total">0</div><div class="t">词库总量</div></div>
+      <div class="stat-box"><div class="n" id="s-done">0</div><div class="t">今日已复习</div></div>
+      <div class="stat-box"><div class="n" id="s-new">0</div><div class="t">待学新词</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">快速搜索</div>
+      <input type="text" id="today-search" placeholder="搜单词 / 中文释义，回车进入词库">
+    </div>
+  </section>
+
+  <!-- ===== 导入 ===== -->
+  <section class="view" id="view-import">
+    <div class="seg">
+      <button id="imp-mode-img" class="on">图片导入</button>
+      <button id="imp-mode-manual">手动加词</button>
+    </div>
+
+    <div id="imp-panel-img">
+      <div class="card">
+        <div class="card-title">1. 选择单词图片（单词 + 中文释义排版）</div>
+        <div class="pick-row">
+          <button class="btn ghost small" id="btn-take-photo">拍照</button>
+          <button class="btn ghost small" id="btn-pick-album">从相册选择</button>
+        </div>
+        <input type="file" id="imp-file-cam" accept="image/*" capture="environment" style="display:none;">
+        <input type="file" id="imp-file-album" accept="image/*" style="display:none;">
+        <button class="btn ghost small" id="btn-ocr">开始识别（百度OCR）</button>
+        <img id="imp-preview" class="img-preview" alt="图片预览">
+      </div>
+      <div class="card" id="imp-result-card" style="display:none;">
+        <div class="card-title">2. 校对识别结果（可改，勾选后入库）</div>
+        <ul class="list" id="imp-result"></ul>
+        <div class="mt">
+          <button class="btn green" id="btn-import-checked">勾选入库</button>
+          <div class="muted center mt" id="imp-summary"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="imp-panel-manual" style="display:none;">
+      <div class="card">
+        <div class="card-title">手动加词（自动补音标与释义）</div>
+        <div class="field"><label>单词</label><input type="text" id="m-word" placeholder="例如：abandon"></div>
+        <div class="field"><label>中文释义（留空自动补）</label><input type="text" id="m-meaning" placeholder="例如：v. 放弃；抛弃"></div>
+        <button class="btn" id="btn-add-manual">加入词库</button>
+      </div>
+      <div class="card">
+        <div class="card-title">词表粘贴导入（每行一个单词，或「单词 释义」）</div>
+        <textarea id="list-text" rows="6" placeholder="abandon 放弃；抛弃&#10;abundant 丰富的；充裕的&#10;accurate&#10;..."></textarea>
+        <button class="btn ghost small" id="btn-list-import" style="margin-top:8px;">解析并入库</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 词库 ===== -->
+  <section class="view" id="view-library">
+    <div class="card" style="padding:10px 12px;">
+      <div class="row" style="gap:6px;">
+        <input type="text" id="lib-search" placeholder="搜索：英文或中文，支持拼写容错" style="flex:1;">
+        <select id="lib-filter" style="flex:0 0 auto;width:auto;">
+          <option value="all">全部</option>
+          <option value="image">图片导入</option>
+          <option value="manual">手动添加</option>
+          <option value="relation">关系扩展</option>
+          <option value="wrong">错词</option>
+        </select>
+      </div>
+    </div>
+    <div class="card" style="padding:4px 14px;">
+      <div class="muted" id="lib-count">共 0 个单词</div>
+      <ul class="list" id="lib-list"></ul>
+    </div>
+  </section>
+
+  <!-- ===== 复习 ===== -->
+  <section class="view" id="view-review">
+    <div class="seg" id="review-mode-seg">
+      <button data-mode="en2zh" class="on">英→中</button>
+      <button data-mode="zh2en">中→英</button>
+      <button data-mode="listen">听音拼写</button>
+    </div>
+    <div class="review-stage" id="review-stage" style="display:none;">
+      <div class="review-progress" id="review-progress"></div>
+      <div class="review-card" id="review-card">
+        <div class="flip-inner" id="flip-inner">
+          <div class="flip-face face-front" id="face-front"></div>
+          <div class="flip-face face-back" id="face-back"></div>
+        </div>
+      </div>
+      <div class="grade-row" id="grade-row">
+        <button class="btn red" id="g-forget">忘记</button>
+        <button class="btn amber" id="g-fuzzy">模糊</button>
+        <button class="btn green" id="g-know">认识</button>
+      </div>
+      <div id="listen-box" class="listen-box" style="display:none;">
+        <div class="big-play" id="btn-listen-play">▶</div>
+        <input type="text" id="listen-input" placeholder="听发音，拼出单词">
+        <div class="mt"><button class="btn ghost small" id="btn-listen-answer">显示答案</button></div>
+        <div id="listen-answer" class="mt center" style="display:none;"></div>
+      </div>
+      <div class="muted center" id="review-hint" style="display:none;">先翻面看答案，再评分</div>
+    </div>
+
+    <div class="card center" id="review-done">
+      <div style="font-size:36px;font-weight:700;color:var(--blue-deep);" id="review-done-title">准备复习</div>
+      <div class="muted" id="done-text">按记忆曲线安排今日复习：到期旧词 + 每日新词</div>
+      <div class="mt">
+        <button class="btn green" id="btn-review-start">开始今日复习</button>
+        <div class="mt"><button class="btn ghost" id="btn-review-home">返回今日</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 统计 ===== -->
+  <section class="view" id="view-stats">
+    <div class="stat-grid">
+      <div class="stat-box"><div class="n" id="st-total">0</div><div class="t">累计词数</div></div>
+      <div class="stat-box"><div class="n" id="st-done">0</div><div class="t">今日已复习</div></div>
+      <div class="stat-box"><div class="n" id="st-forget">0%</div><div class="t">遗忘率</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">掌握度分布</div>
+      <div class="bar-row"><span class="lbl">新词</span><div class="bar-track"><div class="bar-fill" id="bar-new" style="width:0%;background:#94a3b8;"></div></div><span class="val" id="val-new">0</span></div>
+      <div class="bar-row"><span class="lbl">学习中</span><div class="bar-track"><div class="bar-fill" id="bar-learning" style="width:0%;background:#b45309;"></div></div><span class="val" id="val-learning">0</span></div>
+      <div class="bar-row"><span class="lbl">已掌握</span><div class="bar-track"><div class="bar-fill" id="bar-mastered" style="width:0%;background:#15803d;"></div></div><span class="val" id="val-mastered">0</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">最近 7 天复习次数</div>
+      <div class="week-bars" id="week-bars"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">打卡日历</div>
+      <div class="muted" id="cal-streak" style="margin-bottom:8px;"></div>
+      <div id="cal-box"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">错词本（答「忘记」自动记录）</div>
+      <div class="row" style="margin-bottom:8px;">
+        <span class="grow muted">共 <b id="wrong-count">0</b> 个错词 · 遗忘 ≥2 次标记为「难词」</span>
+        <button class="btn amber small" id="btn-wrong-review">强化复习错词</button>
+      </div>
+      <ul class="list" id="wrong-list"></ul>
+    </div>
+  </section>
+
+  <!-- ===== 设置 ===== -->
+  <section class="view" id="view-settings">
+    <div class="card">
+      <div class="card-title">复习节奏</div>
+      <div class="field"><label>每日新词上限</label>
+        <select id="set-daily-new">
+          <option value="15">15 词/天（轻松）</option>
+          <option value="30" selected>30 词/天（推荐）</option>
+          <option value="50">50 词/天（冲刺）</option>
+        </select>
+      </div>
+      <div class="field"><label>发音偏好</label>
+        <select id="set-voice">
+          <option value="gb" selected>英式发音（推荐）</option>
+          <option value="us">美式发音</option>
+        </select>
+      </div>
+      <div class="field"><label>在线补全关系词（Datamuse）</label>
+        <select id="set-online-enrich">
+          <option value="1" selected>开启（推荐，失败自动跳过）</option>
+          <option value="0">关闭（仅用内置数据包）</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">OCR 识别引擎</div>
+      <div class="field"><label>引擎</label>
+        <select id="set-ocr">
+          <option value="baidu" selected>百度云端 OCR（推荐）</option>
+          <option value="local">本地 Tesseract（离线兜底）</option>
+          <option value="tencent" disabled>腾讯云端（开发中）</option>
+        </select>
+      </div>
+      <div class="field"><label>百度 API Key</label><input type="password" id="set-baidu-key" placeholder="填写百度智能云 API Key"></div>
+      <div class="field"><label>百度 Secret Key</label><input type="password" id="set-baidu-secret" placeholder="填写百度智能云 Secret Key"></div>
+      <div class="field"><label>转发代理地址（推荐）</label><input type="url" id="set-baidu-proxy" placeholder="百度云函数转发 URL，如 https://xxx.bceapi.com/ocr"></div>
+      <button class="btn ghost small" id="btn-save-ocr">保存 OCR 配置</button>
+      <details class="help mt">
+        <summary>如何免费获取百度 OCR 密钥？（约 5 分钟）</summary>
+        <ol>
+          <li>打开 <b>百度智能云控制台</b>（console.bce.baidu.com），注册并完成<b>个人实名认证</b>；</li>
+          <li>搜索「文字识别」→ 选择<b>通用文字识别</b> → 在「免费资源领取」页领取免费额度（个人认证 1000 次/月）；</li>
+          <li>点击「创建应用」，选择文字识别服务，创建后复制页面上显示的 <b>API Key</b> 和 <b>Secret Key</b>；</li>
+          <li>把两个 Key 填到上方输入框并保存，即可开始拍照导入单词。</li>
+        </ol>
+      </details>
+      <div class="muted">提示：手机浏览器不能直接调用百度 OCR（跨域限制），请在「转发代理地址」填入云函数转发 URL；填写后手机端无需再填密钥。免费额度 1000 次/月 ≈ 每月可识别 100 张图，个人使用足够。</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">数据备份</div>
+      <div class="row"><span class="grow muted">词库与复习记录全部存在本机浏览器，清理缓存会丢失，请定期导出。</span></div>
+      <div class="grade-row">
+        <button class="btn ghost small" id="btn-export">导出备份 JSON</button>
+        <button class="btn ghost small" id="btn-import">导入备份</button>
+      </div>
+      <input type="file" id="import-file" accept=".json,application/json" style="display:none;">
+    </div>
+
+    <div class="card">
+      <div class="card-title">关于</div>
+      <div class="muted">阶段一：图片导入 + 百度OCR识别（云函数代理）+ 校对入库 + SM-2 复习（英中/中英/听音）+ 中英搜索 + 英音发音 + 备份。</div>
+      <div class="muted mt">阶段二：内置词典数据包（自动补音标释义）、近义/反义/形近词引擎一键加库、打卡日历、错词本强化、词表批量导入、来源筛选、在线补全开关。</div>
+      <div class="mt"><button class="btn red small" id="btn-wipe" style="width:100%;">清空全部词库（危险）</button></div>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tabbar">
+  <a class="tab" data-route="today" href="#/today">今日</a>
+  <a class="tab" data-route="import" href="#/import">导入</a>
+  <a class="tab" data-route="library" href="#/library">词库</a>
+  <a class="tab" data-route="review" href="#/review">复习</a>
+  <a class="tab" data-route="stats" href="#/stats">统计</a>
+  <a class="tab" data-route="settings" href="#/settings">设置</a>
+</nav>
+
+<div class="modal-mask" id="modal-mask">
+  <div class="modal-panel">
+    <div class="modal-head"><h3 id="modal-title">单词详情</h3><button class="modal-close" id="modal-close">✕</button></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
