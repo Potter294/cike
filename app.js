@@ -158,7 +158,7 @@ function loadDict() {
   if (DICT) return Promise.resolve(true);
   if (dictLoading) return dictLoading;
   dictLoading = (async () => {
-    const DICT_CACHE_KEY = 'dict_v2', REL_CACHE_KEY = 'rel_v2';
+    const DICT_CACHE_KEY = 'dict_v3', REL_CACHE_KEY = 'rel_v3';
     try {
       DICT = await metaGet(DICT_CACHE_KEY);
       REL = await metaGet(REL_CACHE_KEY);
