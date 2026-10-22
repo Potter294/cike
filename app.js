@@ -1013,6 +1013,6 @@ function bind() {
   router();
   loadDict();
   if ((location.protocol === 'https:' || location.hostname === 'localhost') && 'serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {});
   }
 })();
