@@ -166,7 +166,7 @@ function loadDict() {
     if (DICT) return true;
     await new Promise((res, rej) => {
       const s = document.createElement('script');
-      s.src = 'dict.js?v=3';
+      s.src = 'dict.js?v=4';
       s.onload = () => {
         if (window.CIKE_DICT) { DICT = window.CIKE_DICT; REL = window.CIKE_REL || {}; res(); }
         else rej(new Error('dict.js 缺少数据'));
@@ -488,14 +488,14 @@ function renderPendingRows() {
     '<li class="correct-row"><input type="checkbox" data-i="' + i + '" ' + (r.checked ? 'checked' : '') + '>'
     + '<input type="text" class="cw" data-f="word" data-i="' + i + '" value="' + esc(r.word) + '">'
     + '<input type="text" class="cm" data-f="meaning" data-i="' + i + '" value="' + esc(r.meaning) + '" placeholder="释义">'
-    + (r.meaning ? '' : '<span class="badge">待补释义</span>')
+    + (r.meaning ? '' : '<span class="badge">' + (r.missing ? '词典未收录（可检查拼写）' : '待补释义') + '</span>')
     + '</li>').join('');
 }
 async function runOcrFiles(files) {
   if (!files || !files.length) return;
   const preview = $('#imp-preview');
-  // 预加载内置词典（用于识别后自动补释义；加载失败不阻断识别）
-  const dictOk = await loadDict();
+  // 预加载内置词典（与 OCR 并行，互不阻塞；加载失败不阻断识别）
+  const dictP = loadDict();
   const merged = new Map(); // word -> {word, meaning}
   let failCount = 0, lastError = '';
   for (let i = 0; i < files.length; i++) {
@@ -517,11 +517,13 @@ async function runOcrFiles(files) {
     }
   }
   // 词典自动补释义：OCR 没识别出中文释义的词条，用内置词典填充
+  const dictOk = await dictP;
   if (dictOk) {
     for (const r of merged.values()) {
       if (!r.meaning) {
         const e = dictLookup(r.word);
         if (e && e.defs && e.defs.length) r.meaning = e.defs[0];
+        else r.missing = true; // 词典未收录（可能是识别截断/生僻词）
       }
     }
   }
